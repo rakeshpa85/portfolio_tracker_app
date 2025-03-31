@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Edit Investment</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('portfolio.edit', id=item.id) }}" id="portfolioForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="investment_name" class="form-label">Investment Name</label>
+                            <input type="text" class="form-control" id="investment_name" name="investment_name" 
+                                   value="{{ item.investment_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="is_asset" class="form-label">Asset Type</label>
+                            <select class="form-select" id="is_asset" name="is_asset" required>
+                                <option value="Asset" {% if item.is_asset %}selected{% endif %}>Asset</option>
+                                <option value="Non-Asset" {% if not item.is_asset %}selected{% endif %}>Non-Asset</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="investment_type" class="form-label">Investment Type</label>
+                            <select class="form-select" id="investment_type" name="investment_type" required>
+                                <option value="">Select Type</option>
+                                {% for type in ['Equity', 'Debt Fund', 'Liquid Fund', 'Gold', 'Real Estate'] %}
+                                <option value="{{ type }}" {% if item.investment_type == type %}selected{% endif %}>
+                                    {{ type }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="investment_mode" class="form-label">Investment Mode</label>
+                            <select class="form-select" id="investment_mode" name="investment_mode" required>
+                                <option value="">Select Mode</option>
+                                {% for mode in ['Digital', 'Physical'] %}
+                                <option value="{{ mode }}" {% if item.investment_mode == mode %}selected{% endif %}>
+                                    {{ mode }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="investment_geography" class="form-label">Geography</label>
+                            <select class="form-select" id="investment_geography" name="investment_geography" required>
+                                <option value="">Select Geography</option>
+                                {% for geo in ['India', 'United States'] %}
+                                <option value="{{ geo }}" {% if item.investment_geography == geo %}selected{% endif %}>
+                                    {{ geo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="risk_level" class="form-label">Risk Level</label>
+                            <select class="form-select" id="risk_level" name="risk_level" required>
+                                <option value="">Select Risk Level</option>
+                                {% for level in ['High', 'Medium', 'Low'] %}
+                                <option value="{{ level }}" {% if item.risk_level == level %}selected{% endif %}>
+                                    {{ level }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="liquidity_level" class="form-label">Liquidity Level</label>
+                            <select class="form-select" id="liquidity_level" name="liquidity_level" required>
+                                <option value="">Select Liquidity Level</option>
+                                {% for level in ['High', 'Medium', 'Low'] %}
+                                <option value="{{ level }}" {% if item.liquidity_level == level %}selected{% endif %}>
+                                    {{ level }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="invested_amount" class="form-label">Invested Amount</label>
+                            <input type="number" step="0.01" class="form-control" id="invested_amount" 
+                                   name="invested_amount" value="{{ item.invested_amount }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="current_value" class="form-label">Current Value</label>
+                            <input type="number" step="0.01" class="form-control" id="current_value" 
+                                   name="current_value" value="{{ item.current_value }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Value Change</label>
+                            <div id="value_change" class="form-control-plaintext"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Percentage Change</label>
+                            <div id="percentage_change" class="form-control-plaintext"></div>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <a href="{{ url_for('portfolio.index') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Investment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calculateChanges() {
+    const invested = parseFloat($('#invested_amount').val()) || 0;
+    const current = parseFloat($('#current_value').val()) || 0;
+    
+    const valueChange = current - invested;
+    const percentageChange = invested !== 0 ? ((current - invested) / invested * 100) : 0;
+    
+    $('#value_change').text(valueChange.toFixed(2))
+        .toggleClass('negative-value', valueChange < 0);
+    $('#percentage_change').text(percentageChange.toFixed(2) + '%')
+        .toggleClass('negative-value', percentageChange < 0);
+}
+
+$(document).ready(function() {
+    $('#invested_amount, #current_value').on('input', calculateChanges);
+    calculateChanges(); // Calculate initial values
+});
+</script>
+{% endblock %} 

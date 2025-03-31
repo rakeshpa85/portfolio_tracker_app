@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2>Configuration</h2>
+    </div>
+</div>
+
+<div class="row">
+    {% for category_key, category_name in categories.items() %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ category_name }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('config.add_value') }}" class="mb-3">
+                    <input type="hidden" name="category" value="{{ category_key }}">
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="value" placeholder="Add new value" required>
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                </form>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Value</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for config in config_values[category_key] %}
+                            <tr>
+                                <td>{{ config.value }}</td>
+                                <td class="text-end">
+                                    <form action="{{ url_for('config.delete_value', id=config.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" class="text-center">No values configured.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %} 

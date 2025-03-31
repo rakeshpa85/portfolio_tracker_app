@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h1>Welcome to Portfolio Tracker</h1>
+        <p class="lead">Manage and track your investments in one place.</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Portfolio Management</h5>
+                <p class="card-text">Add, edit, and track your investments across different asset classes.</p>
+                <a href="{{ url_for('portfolio.index') }}" class="btn btn-primary">View Portfolio</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Dashboard Analytics</h5>
+                <p class="card-text">Visualize your investment distribution and track performance over time.</p>
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">View Dashboard</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Configuration</h5>
+                <p class="card-text">Customize investment types and other settings for your portfolio.</p>
+                <a href="{{ url_for('config.index') }}" class="btn btn-primary">Configure</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

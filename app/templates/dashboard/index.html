@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header and Filter -->
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Dashboard</h2>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" name="assetFilter" id="assetOnly" value="true" checked>
+                <label class="btn btn-outline-primary" for="assetOnly">Asset Only</label>
+                <input type="radio" class="btn-check" name="assetFilter" id="assetPlusNonAsset" value="false">
+                <label class="btn btn-outline-primary" for="assetPlusNonAsset">Asset plus Non-Asset</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pie Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Investment Value Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div id="valueDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Investment Percentage Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <div id="percentageDistributionChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Table -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Investment Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Investment Type</th>
+                                    <th class="text-end">Invested Amount</th>
+                                    <th class="text-end">Current Amount</th>
+                                    <th class="text-end">Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bar and Trend Charts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Monthly Investment Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div id="monthlyComparisonChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Invested Amount Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div id="investedTrendChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Current Value Trends</h5>
+                </div>
+                <div class="card-body">
+                    <div id="currentValueTrendChart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function formatCurrency(value) {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR'
+    }).format(value);
+}
+
+function updateDashboard() {
+    const assetsOnly = document.querySelector('input[name="assetFilter"]:checked').value;
+    fetch(`/dashboard/api/chart-data?assets_only=${assetsOnly}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update pie charts
+            Plotly.newPlot('valueDistributionChart', [{
+                values: data.value_distribution.values,
+                labels: data.value_distribution.labels,
+                type: 'pie',
+                textinfo: 'label+value',
+                hoverinfo: 'label+value+percent',
+                hole: 0.4
+            }], {
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 }
+            });
+
+            Plotly.newPlot('percentageDistributionChart', [{
+                values: data.percentage_distribution.values,
+                labels: data.percentage_distribution.labels,
+                type: 'pie',
+                textinfo: 'label+percent',
+                hovertemplate: '%{label}<br>%{value:.1f}%<extra></extra>',
+                hole: 0.4
+            }], {
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 }
+            });
+
+            // Update summary table
+            const tableBody = document.getElementById('summaryTableBody');
+            tableBody.innerHTML = '';
+            data.summary_data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                if (index === data.summary_data.length - 1) {
+                    tr.classList.add('fw-bold');
+                }
+                tr.innerHTML = `
+                    <td>${row.investment_type}</td>
+                    <td class="text-end">${formatCurrency(row.invested_amount)}</td>
+                    <td class="text-end">${formatCurrency(row.current_value)}</td>
+                    <td class="text-end">${row.percentage.toFixed(1)}%</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Process monthly data for charts
+            const monthlyData = data.monthly_data;
+            const months = [...new Set(monthlyData.map(item => item.month_year))];
+            const investmentTypes = [...new Set(monthlyData.map(item => item.investment_type))];
+
+            // Monthly comparison bar chart - Aggregate values
+            const aggregatedMonthlyData = months.map(month => {
+                const monthData = monthlyData.filter(item => item.month_year === month);
+                return {
+                    month_year: month,
+                    total_invested: monthData.reduce((sum, item) => sum + item.invested_amount, 0),
+                    total_current: monthData.reduce((sum, item) => sum + item.current_value, 0)
+                };
+            });
+
+            const barTraces = [
+                {
+                    name: 'Total Invested',
+                    x: aggregatedMonthlyData.map(d => d.month_year),
+                    y: aggregatedMonthlyData.map(d => d.total_invested),
+                    type: 'bar',
+                    text: aggregatedMonthlyData.map(d => formatCurrency(d.total_invested)),
+                    textposition: 'auto',
+                },
+                {
+                    name: 'Total Current Value',
+                    x: aggregatedMonthlyData.map(d => d.month_year),
+                    y: aggregatedMonthlyData.map(d => d.total_current),
+                    type: 'bar',
+                    text: aggregatedMonthlyData.map(d => formatCurrency(d.total_current)),
+                    textposition: 'auto',
+                }
+            ];
+
+            Plotly.newPlot('monthlyComparisonChart', barTraces, {
+                barmode: 'group',
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 },
+                xaxis: { title: 'Month' },
+                yaxis: { 
+                    title: 'Amount (₹)',
+                    tickformat: ',.0f'
+                },
+                margin: { t: 30, b: 50, l: 80, r: 20 },
+                bargap: 0.15,
+                bargroupgap: 0.1
+            });
+
+            // Trend charts
+            const investedTraces = investmentTypes.map(type => {
+                const typeData = monthlyData.filter(item => item.investment_type === type);
+                return {
+                    name: type,
+                    x: typeData.map(d => d.month_year),
+                    y: typeData.map(d => d.invested_amount),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    text: typeData.map(d => formatCurrency(d.invested_amount)),
+                    hovertemplate: '%{text}<extra>%{name}</extra>'
+                };
+            });
+
+            const currentValueTraces = investmentTypes.map(type => {
+                const typeData = monthlyData.filter(item => item.investment_type === type);
+                return {
+                    name: type,
+                    x: typeData.map(d => d.month_year),
+                    y: typeData.map(d => d.current_value),
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    text: typeData.map(d => formatCurrency(d.current_value)),
+                    hovertemplate: '%{text}<extra>%{name}</extra>'
+                };
+            });
+
+            Plotly.newPlot('investedTrendChart', investedTraces, {
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 },
+                xaxis: { title: 'Month' },
+                yaxis: { 
+                    title: 'Invested Amount (₹)',
+                    tickformat: ',.0f'
+                },
+                margin: { t: 30, b: 50, l: 80, r: 20 }
+            });
+
+            Plotly.newPlot('currentValueTrendChart', currentValueTraces, {
+                showlegend: true,
+                legend: { orientation: 'h', y: -0.2 },
+                xaxis: { title: 'Month' },
+                yaxis: { 
+                    title: 'Current Value (₹)',
+                    tickformat: ',.0f'
+                },
+                margin: { t: 30, b: 50, l: 80, r: 20 }
+            });
+        });
+}
+
+// Initial load
+document.addEventListener('DOMContentLoaded', updateDashboard);
+
+// Update on filter change
+document.querySelectorAll('input[name="assetFilter"]').forEach(radio => {
+    radio.addEventListener('change', updateDashboard);
+});
+</script>
+{% endblock %} 
